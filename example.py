@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-img = cv2.imread("testrgb.tif")
+img = cv2.imread("input\\testrgb.tif")
 
 cv2.imshow('oxxostudio', img)
 
