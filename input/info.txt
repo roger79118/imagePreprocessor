@@ -1,0 +1,16 @@
+Goal
+
+1. visualize image
+	1-a 2D and 3D work	
+	1-b channel selection visualization
+	1-c realtime zoom in/out
+	
+2. region define
+	2-a create full region
+	2-b create custom region
+	2-c multiple regions
+	2-d name regions
+
+3. threshold setting
+	3-a visualize threshold
+	3-b dynamic threshole with trackbar  
