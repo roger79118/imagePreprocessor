@@ -11,6 +11,6 @@ Goal
 	2-c multiple regions
 	2-d name regions
 
-3. threshold setting
-	3-a visualize threshold
-	3-b dynamic threshole with trackbar  
+[V] 3. threshold setting
+	3-a visualize threshold [V]
+	3-b dynamic threshole with trackbar [V]
