@@ -51,8 +51,12 @@ class Control:
         self.path = path
         
         # Load image
-        self.frame = self.load(self.path)
-        self.b_frame, self.g_frame, self.r_frame = self.rgbFrame(self.frame)
+        self.origin = self.load(path)
+        self.frame = self.resize(self.origin)
+
+        # create subframe
+        self.subframe = {0:None, 1:None, 2:None}
+        self.subframe[0], self.subframe[1], self.subframe[2] = cv2.split(self.frame)  
 
         # create variables
         self.lowerLimits = np.array([0, 0, 0])
@@ -63,93 +67,89 @@ class Control:
 
 
     def load(self, path):
-        # Load image
-        im = cv2.imread(path)
-        if im.shape[1] > 800 or im.shape[0] > 600:
-            rfx = im.shape[1]//400
-            rfy = im.shape[0]//300
-            frame = cv2.resize(im, (0, 0), fx=1/rfx, fy=1/rfy) 
+        return cv2.imread(path)
+    
+
+    def resize(self, img):
+        zoomfactor = 300
+        im = img.copy()
+        if im.shape[1] > zoomfactor or im.shape[0] > zoomfactor:
+            rfx = im.shape[1]//zoomfactor
+            rfy = im.shape[0]//zoomfactor
+            frame = cv2.resize(im, (0, 0), fx=1/(0.5+rfx), fy=1/(0.5+rfy)) 
         else:
             frame = im
         return frame
 
 
-    def rgbFrame(self, img):
-        
-        b, g, r = cv2.split(img)
-        zeros = np.zeros_like(img[:,:,0])
-        b_frame = cv2.merge([b, zeros, zeros])
-        g_frame = cv2.merge([zeros, g, zeros])
-        r_frame = cv2.merge([zeros, zeros, r])
-
-        return b_frame, g_frame, r_frame
-        #cv2.imshow("rFrame", cv2.cvtColor(self.r_frame,cv2.COLOR_GRAY2RGB))
-        #cv2.imshow("gFrame", cv2.cvtColor(self.g_frame,cv2.COLOR_GRAY2RGB))
-        #cv2.imshow("bFrame", cv2.cvtColor(self.b_frame,cv2.COLOR_GRAY2RGB))
-        pass
+    def singleColerFrame(self, col, img):
+        zeros = np.zeros_like(img)
+        mergeList = []
+        for i in range(3):
+            if i == col:
+                mergeList.append(img)
+            else:
+                mergeList.append(zeros)
+        return cv2.merge(mergeList)
 
 
-
-
-    # functions to modify the color ranges
     def setLowVal(self, val, col):
         self.lowerLimits[col] = val
+        val = int(val/65535*255)
         self.threshold[col][0] = val
-        self.processImage(col)
+        self.processImage()
 
     def setHighVal(self, val, col):
         self.upperLimits[col] = val
+        val = int(val/65535*255)
         self.threshold[col][1] = val
-        self.processImage(col)
-
-    def processImage(self, col):
-        # treshold and mask image
-
-        splitLowerLimits = np.array([self.threshold[0][0], self.threshold[1][0], self.threshold[2][0]])
-        splitUpperLimits = np.array([self.threshold[0][1], self.threshold[1][1], self.threshold[2][1]])
-
-
-        r_thresholded = cv2.inRange(self.r_frame, splitLowerLimits, splitUpperLimits)
-        g_thresholded = cv2.inRange(self.g_frame, splitLowerLimits, splitUpperLimits)
-        b_thresholded = cv2.inRange(self.b_frame, splitLowerLimits, splitUpperLimits)
+        self.processImage()
+    
+    
+    def processImage(self):
+        b_outimage = self.setThreshold(self.subframe[0], 0, self.threshold)
+        g_outimage = self.setThreshold(self.subframe[1], 1, self.threshold)
+        r_outimage = self.setThreshold(self.subframe[2], 2, self.threshold)
         
-        r_outimage = cv2.bitwise_and(self.r_frame, self.r_frame, mask = r_thresholded)
-        g_outimage = cv2.bitwise_and(self.g_frame, self.g_frame, mask = g_thresholded)
-        b_outimage = cv2.bitwise_and(self.b_frame, self.b_frame, mask = b_thresholded)
+        outimage = cv2.merge([b_outimage, g_outimage, r_outimage])
+        b_outimage = self.singleColerFrame(0, b_outimage)
+        g_outimage = self.singleColerFrame(1, g_outimage)
+        r_outimage = self.singleColerFrame(2, r_outimage)
 
-        thresholded = cv2.inRange(self.frame, self.lowerLimits, self.upperLimits)
-        outimage = cv2.bitwise_and(self.frame, self.frame, mask = thresholded)
-        
-
-        #show img
-        cv2.imshow("Frame", outimage)
-        cv2.imshow("rFrame", r_outimage)
-        cv2.imshow("gFrame", g_outimage)
         cv2.imshow("bFrame", b_outimage)
+        cv2.imshow("gFrame", g_outimage)
+        cv2.imshow("rFrame", r_outimage)
+        cv2.imshow("Frame", outimage)
         cv2.moveWindow('rFrame',400,0)
         cv2.moveWindow('bFrame',400,350)
         cv2.moveWindow('gFrame',850,0)
         cv2.moveWindow('Frame',850,350)
+
+
+    def setThreshold(self, img, col, threshold):
+        thres_img = img.copy()
+        thres_img[img<=threshold[col][0]] = 0
+        thres_img[img>=threshold[col][1]] = 0
+        thres_img.astype(np.uint8)
+        return thres_img
+
+
     def createpanel(self):
-        #show initial image
-        cv2.imshow("Frame", self.frame)
-
-
         # create trackbars
         cv2.namedWindow("Control")
-        cv2.createTrackbar("lowRed", "Control", 0,255, lambda x: self.setLowVal(x,2))
-        cv2.createTrackbar("highRed", "Control", 255,255, lambda x: self.setHighVal(x,2))
-        cv2.createTrackbar("lowGreen", "Control", 0,255, lambda x: self.setLowVal(x,1))
-        cv2.createTrackbar("highGreen", "Control", 255,255, lambda x: self.setHighVal(x,1))
-        cv2.createTrackbar("lowBlue", "Control", 0,255, lambda x: self.setLowVal(x,0))
-        cv2.createTrackbar("highBlue", "Control", 255,255, lambda x: self.setHighVal(x,0))
+        cv2.createTrackbar("lowRed", "Control", 0,65535, lambda x: self.setLowVal(x,2))
+        cv2.createTrackbar("highRed", "Control", 65535,65535, lambda x: self.setHighVal(x,2))
+        cv2.createTrackbar("lowGreen", "Control", 0,65535, lambda x: self.setLowVal(x,1))
+        cv2.createTrackbar("highGreen", "Control", 65535,65535, lambda x: self.setHighVal(x,1))
+        cv2.createTrackbar("lowBlue", "Control", 0,65535, lambda x: self.setLowVal(x,0))
+        cv2.createTrackbar("highBlue", "Control", 65535,65535, lambda x: self.setHighVal(x,0))
         cv2.moveWindow('Control',50,200)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-        
         return self.threshold, self.lowerLimits, self.upperLimits
 
 
-openimg = Control("input/Hum40-MAP2_GLT1_DAPI.tif")
+#openimg = Control("input/Hum40-MAP2_GLT1_DAPI.tif")
+openimg = Control("input/testrgb.tif")
 threshold = openimg.createpanel()
 print(threshold)
