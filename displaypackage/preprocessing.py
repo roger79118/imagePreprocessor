@@ -11,7 +11,7 @@ class Imagedisplay:
         self.frame = self.resize(self.origin)
 
         # create subframe
-        self.subframe = {0:None, 1:None, 2:None}
+        self.subframe = {}
         self.subframe[0], self.subframe[1], self.subframe[2] = cv2.split(self.frame)  
 
         # create variables
