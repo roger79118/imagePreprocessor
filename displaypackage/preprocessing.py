@@ -55,6 +55,7 @@ class Imagedisplay:
         self.threshold[col][0] = val
         self.processImage()
 
+
     def setHighVal(self, val, col):
         self.upperLimits[col] = val
         val = int(val/65535*255)
@@ -68,9 +69,13 @@ class Imagedisplay:
         r_outimage = self.setThreshold(self.subframe[2], 2, self.threshold)
         
         outimage = cv2.merge([b_outimage, g_outimage, r_outimage])
-        b_outimage = self.singleColerFrame(0, b_outimage)
-        g_outimage = self.singleColerFrame(1, g_outimage)
-        r_outimage = self.singleColerFrame(2, r_outimage)
+        #b_outimage = self.singleColerFrame(0, b_outimage)
+        #g_outimage = self.singleColerFrame(1, g_outimage)
+        #r_outimage = self.singleColerFrame(2, r_outimage)
+        
+        b_outimage = self.thresVisual(self.subframe[0], 0, self.threshold, "magenta")
+        g_outimage = self.thresVisual(self.subframe[1], 1, self.threshold, "magenta")
+        r_outimage = self.thresVisual(self.subframe[2], 2, self.threshold, "magenta")
 
         cv2.imshow("bFrame", b_outimage)
         cv2.imshow("gFrame", g_outimage)
@@ -88,6 +93,39 @@ class Imagedisplay:
         thres_img[img>=threshold[col][1]] = 0
         thres_img.astype(np.uint8)
         return thres_img
+
+
+    def thresVisual(self, img, col, threshold, color):
+        labels = {"cyan":[255, 255, 10],
+                  "white": [255, 255, 255],
+                  "yellow": [100, 255, 255],
+                  "magenta": [255, 10, 255]
+                }
+        renew = []
+        for i in range(3):
+            
+            if labels[color][i]:
+                thres_img = np.zeros_like(img)
+                if i == col:
+                    thres_img[img<threshold[col][0]] = img[img<threshold[col][0]]
+                    thres_img[img>=threshold[col][0]] = labels[color][i]
+                    thres_img[img>threshold[col][1]] = img[img>threshold[col][1]]
+                else:
+                    thres_img[img<threshold[col][0]] = 0
+                    thres_img[img>=threshold[col][0]] = labels[color][i]
+                    thres_img[img>threshold[col][1]] = 0
+            else:
+                if i == col:
+                    thres_img = img.copy()
+                else:
+                    thres_img = np.zeros_like(img)
+
+            renew.append(thres_img) 
+        return cv2.merge(renew)
+
+
+    def setThresFrame(self, img):
+        return cv2.merge([img, img, img])
 
 
     def createpanel(self):
