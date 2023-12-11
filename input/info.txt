@@ -14,3 +14,4 @@ Goal
 [V] 3. threshold setting
 	3-a visualize threshold [V]
 	3-b dynamic threshole with trackbar [V]
+	3-c threshold highlight [V]
